@@ -21,7 +21,7 @@ public class ExampleService  {
 
     @GetMapping("/reverse")
     public DeferredResult<String> stringReverseService(@RequestParam String input){
-        return pipelineDispatcherFactory.dispatcherFor("reverse").send(input);
+        return pipelineDispatcherFactory.<String,String>dispatcherFor("reverse").send(input);
     }
 
     // the code below is used to initialize an embedded pipeline for illustration purposes

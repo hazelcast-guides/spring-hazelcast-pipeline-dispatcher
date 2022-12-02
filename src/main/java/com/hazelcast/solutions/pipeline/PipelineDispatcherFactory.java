@@ -11,7 +11,6 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.solutions.pipeline.internal.RequestKeyFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -34,9 +33,9 @@ public class PipelineDispatcherFactory {
     @Value("${hazelcast.pipeline.dispatcher.request_timeout_ms}")
     private long requestTimeoutMs;
 
-    public PipelineDispatcher dispatcherFor(String name){
-        PipelineDispatcher result = dispatcherMap.computeIfAbsent(name, k ->
-            new PipelineDispatcher(
+    public <R,P> PipelineDispatcher<R,P> dispatcherFor(String name){
+        PipelineDispatcher<R,P> result = dispatcherMap.computeIfAbsent(name, k ->
+            new PipelineDispatcher<R,P>(
                 this.requestKeyFactory,
                 this.hazelcastInstance.getMap(k + "_request"),
                 this.hazelcastInstance.getMap(k + "_response"),

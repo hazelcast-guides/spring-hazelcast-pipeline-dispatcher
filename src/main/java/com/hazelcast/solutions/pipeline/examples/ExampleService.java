@@ -1,9 +1,9 @@
-package com.hazelcast.solutions.pipeline;
+package com.hazelcast.solutions.pipeline.examples;
 
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.jet.config.JobConfig;
 import com.hazelcast.jet.pipeline.Pipeline;
+import com.hazelcast.solutions.pipeline.PipelineDispatcher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;

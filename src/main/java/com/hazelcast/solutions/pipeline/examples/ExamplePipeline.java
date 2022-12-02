@@ -1,4 +1,4 @@
-package com.hazelcast.solutions.pipeline;
+package com.hazelcast.solutions.pipeline.examples;
 
 import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;

@@ -3,7 +3,7 @@ package com.hazelcast.solutions.pipeline.examples;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.jet.pipeline.Pipeline;
-import com.hazelcast.solutions.pipeline.PipelineDispatcher;
+import com.hazelcast.solutions.pipeline.PipelineDispatcherFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,11 +17,11 @@ import java.util.Set;
 @RestController
 public class ExampleService  {
     @Autowired
-    PipelineDispatcher pipelineDispatcher;
+    PipelineDispatcherFactory pipelineDispatcherFactory;
 
     @GetMapping("/reverse")
     public DeferredResult<String> stringReverseService(@RequestParam String input){
-        return pipelineDispatcher.send(input);
+        return pipelineDispatcherFactory.dispatcherFor("reverse").send(input);
     }
 
     // the code below is used to initialize an embedded pipeline for illustration purposes
@@ -30,18 +30,12 @@ public class ExampleService  {
     @Value("${hazelcast.pipeline.dispatcher.embed_hazelcast:false}")
     boolean embedHazelcast;
 
-    @Value("${hazelcast.pipeline.dispatcher.request_map}")
-    private String requestMapName;
-
-    @Value("${hazelcast.pipeline.dispatcher.response_map}")
-    private String responseMapName;
-
     @PostConstruct
     public void init(){
         if (embedHazelcast){
             Set<HazelcastInstance> hzs = Hazelcast.getAllHazelcastInstances();
             HazelcastInstance hz = hzs.iterator().next();
-            Pipeline pipeline = ExamplePipeline.createPipeline(requestMapName, responseMapName);
+            Pipeline pipeline = ExamplePipeline.createPipeline("reverse_request", "reverse_response");
             hz.getJet().newJob(pipeline);
         }
     }

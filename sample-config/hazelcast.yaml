@@ -3,7 +3,7 @@ hazelcast:
     enabled: true
     resource-upload-enabled: true
   map:
-    request:
+    reverse_request:
       event-journal:
         enabled: true
         capacity: 100000

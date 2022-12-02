@@ -11,25 +11,18 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.solutions.pipeline.internal.RequestKeyFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
 
-@Configuration
+@Component
 public class PipelineDispatcherFactory {
-
-    @Value("${hazelcast.pipeline.dispatcher.request_map}")
-    private String requestMapName;
-
-    @Value("${hazelcast.pipeline.dispatcher.response_map}")
-    private String responseMapName;
-
     @Value("${hazelcast.pipeline.dispatcher.embed_hazelcast:false}")
     private boolean embedHazelcast;
 
@@ -41,23 +34,27 @@ public class PipelineDispatcherFactory {
     @Value("${hazelcast.pipeline.dispatcher.request_timeout_ms}")
     private long requestTimeoutMs;
 
-    @Bean
-    @Scope("singleton")
-    PipelineDispatcher pipelineDispatcher(){
-
-        PipelineDispatcher result = new PipelineDispatcher(
+    public PipelineDispatcher dispatcherFor(String name){
+        PipelineDispatcher result = dispatcherMap.computeIfAbsent(name, k ->
+            new PipelineDispatcher(
                 this.requestKeyFactory,
-                this.hazelcastInstance.getMap(requestMapName),
-                this.hazelcastInstance.getMap(responseMapName),
-                requestTimeoutMs);
+                this.hazelcastInstance.getMap(k + "_request"),
+                this.hazelcastInstance.getMap(k + "_response"),
+                requestTimeoutMs));
 
         return result;
     }
+
+    private ConcurrentHashMap<String, PipelineDispatcher> dispatcherMap;
+
     private RequestKeyFactory requestKeyFactory;
+
     private HazelcastInstance hazelcastInstance;
 
     @PostConstruct
     public void initialize() {
+        this.dispatcherMap = new ConcurrentHashMap<>();
+
         this.requestKeyFactory = new RequestKeyFactory();
 
         // create the hazelcast instance

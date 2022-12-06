@@ -1,0 +1,26 @@
+services:
+  hz-pipeline:
+    image: amazoncorretto:11
+    command: >
+      java -cp /opt/project/sample-pipeline/target/spring-hazelcast-pipeline-dispatcher-sample-pipeline-0.0.1-SNAPSHOT.jar
+        hazelcast.platform.solutions.pipeline.dispatcher.sample.ExamplePipeline
+    volumes:
+      - ".:/opt/project"
+    networks:
+      - default
+
+  app:
+    image: amazoncorretto:11
+    command: >
+      java -Dspring.config.location=/opt/project/sample-application/config/clientserver.application.properties
+        -jar /opt/project/sample-application/target/spring-hazelcast-pipeline-dispatcher-sample-application-0.0.1-SNAPSHOT.jar
+    volumes:
+      - ".:/opt/project"
+    ports:
+      - "8080:8080"
+    networks:
+      - default
+
+
+networks:
+  default: {}

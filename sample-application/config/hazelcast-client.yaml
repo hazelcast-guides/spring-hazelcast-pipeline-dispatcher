@@ -3,7 +3,7 @@ hazelcast-client:
   instance-name: myappserver
   network:
     cluster-members:
-      - 127.0.0.1:5701
+      - hz-pipeline:5701
     smart-routing: true
   connection-strategy:
     async-start: true

@@ -19,6 +19,7 @@
 
 	<modules>
 		<module>solution</module>
-		<module>sample</module>
+		<module>sample-application</module>
+		<module>sample-pipeline</module>
 	</modules>
 </project>

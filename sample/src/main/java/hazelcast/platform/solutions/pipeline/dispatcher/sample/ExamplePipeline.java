@@ -1,11 +1,11 @@
-package com.hazelcast.solutions.pipeline.examples;
+package hazelcast.platform.solutions.pipeline.dispatcher.sample;
 
 import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.jet.datamodel.Tuple2;
 import com.hazelcast.jet.pipeline.*;
-import com.hazelcast.solutions.pipeline.internal.RequestKey;
+import hazelcast.platform.solutions.pipeline.dispatcher.internal.RequestKey;
 
 import java.util.Map;
 
@@ -13,14 +13,14 @@ public class ExamplePipeline {
     public static void main(String[] args) {
         // event journal must be enabled on the request map but is not required for the response map
         Config hzConfig = new Config();
-        hzConfig.getMapConfig("request").getEventJournalConfig().setEnabled(true);
+        hzConfig.getMapConfig("reverse_request").getEventJournalConfig().setEnabled(true);
         hzConfig.getJetConfig().setEnabled(true);
 
         // this will start daemon threads - the process will not exit
         HazelcastInstance hz = Hazelcast.newHazelcastInstance(hzConfig);
         Runtime.getRuntime().addShutdownHook(new Thread(hz::shutdown));
 
-        hz.getJet().newJob(ExamplePipeline.createPipeline("request","response"));
+        hz.getJet().newJob(ExamplePipeline.createPipeline("reverse_request","reverse_response"));
     }
 
     static Pipeline createPipeline(String requestMapName, String responseMapName) {

@@ -1,4 +1,4 @@
-package com.hazelcast.solutions.pipeline;
+package hazelcast.platform.solutions.pipeline.dispatcher;
 
 import com.hazelcast.core.EntryEvent;
 import com.hazelcast.map.IMap;
@@ -6,8 +6,8 @@ import com.hazelcast.map.listener.EntryAddedListener;
 import com.hazelcast.query.Predicate;
 import com.hazelcast.query.PredicateBuilder;
 import com.hazelcast.query.Predicates;
-import com.hazelcast.solutions.pipeline.internal.RequestKey;
-import com.hazelcast.solutions.pipeline.internal.RequestKeyFactory;
+import hazelcast.platform.solutions.pipeline.dispatcher.internal.RequestKey;
+import hazelcast.platform.solutions.pipeline.dispatcher.internal.RequestKeyFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.context.request.async.DeferredResult;

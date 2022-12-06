@@ -1,4 +1,4 @@
-package com.hazelcast.solutions.pipeline.internal;
+package hazelcast.platform.solutions.pipeline.dispatcher.internal;
 
 import org.springframework.stereotype.Component;
 import java.util.UUID;

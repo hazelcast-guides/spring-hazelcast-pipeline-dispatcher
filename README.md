@@ -10,7 +10,10 @@ Some advantages of this approach are:
 - The business logic is in an independently deployable Hazelcast pipeline.  The logic can be updated by deploying a new Pipeline, without touching the web servers.
 - The web tier and the business logic tiers scale independently.
 
-# Notes
+# Usage
+
+
+# Implementation Notes
 - This implementation uses an asynchronous architecture for high performance and scalability.  The REST controller's service
 method returns a `DeferredResult` and retrieving the response from Hazelcast is also asynchronous.  When the response arrives,
 the `setResult` method of the `DeferredResult` instance is called.
@@ -23,5 +26,3 @@ When a result with the matching client id is put into response map, the correct 
 It will then use the unique id to look up the correct `DeferredResult` instance. The result will be sent to the original 
 HTTP/REST client by calling `DeferredResult.setResult` method.
 
-# To Do
-- support local and remote Hazelcast (maybe via profiles).

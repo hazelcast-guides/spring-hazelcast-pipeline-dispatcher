@@ -1,15 +1,15 @@
-package com.hazelcast.solutions.pipeline.examples;
+package hazelcast.platform.solutions.pipeline.dispatcher.sample;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@ComponentScan(basePackages = "com.hazelcast.solutions.pipeline")
-public class PipelineDispatcherApplication {
+@ComponentScan(basePackages = "hazelcast.platform.solutions")
+public class ExampleApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(PipelineDispatcherApplication.class, args);
+		SpringApplication.run(ExampleApplication.class, args);
 	}
 
 }

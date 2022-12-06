@@ -1,4 +1,4 @@
-package com.hazelcast.solutions.pipeline;
+package hazelcast.platform.solutions.pipeline.dispatcher;
 
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
@@ -9,7 +9,7 @@ import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.config.YamlConfigBuilder;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.solutions.pipeline.internal.RequestKeyFactory;
+import hazelcast.platform.solutions.pipeline.dispatcher.internal.RequestKeyFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 

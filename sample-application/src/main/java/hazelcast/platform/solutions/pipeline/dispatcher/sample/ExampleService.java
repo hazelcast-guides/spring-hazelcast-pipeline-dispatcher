@@ -33,8 +33,7 @@ public class ExampleService  {
     @PostConstruct
     public void init(){
         if (embedHazelcast){
-            Set<HazelcastInstance> hzs = Hazelcast.getAllHazelcastInstances();
-            HazelcastInstance hz = hzs.iterator().next();
+            HazelcastInstance hz = pipelineDispatcherFactory.getEmbeddedHazelcastInstance();
             Pipeline pipeline = ExamplePipeline.createPipeline("reverse_request", "reverse_response");
             hz.getJet().newJob(pipeline);
         }

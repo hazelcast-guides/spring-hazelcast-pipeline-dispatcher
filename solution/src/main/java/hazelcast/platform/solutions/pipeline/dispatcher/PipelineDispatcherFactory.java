@@ -96,6 +96,13 @@ public class PipelineDispatcherFactory {
         }
     }
 
+    public HazelcastInstance getEmbeddedHazelcastInstance(){
+        if (embedHazelcast)
+            return hazelcastInstance;
+        else
+            return null;
+    }
+
     @PreDestroy
     public void close(){
         hazelcastInstance.shutdown();

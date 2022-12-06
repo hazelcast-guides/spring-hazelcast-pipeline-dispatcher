@@ -5,7 +5,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-//TODO it would be better if we could do this part without synchronization ... perhaps with a ThreadLocal Long for the unique id ?
 
 /**
  * Generates unique request keys.  This class is safe for concurrent access.

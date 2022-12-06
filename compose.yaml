@@ -8,8 +8,10 @@ services:
       - ".:/opt/project"
     networks:
       - default
+    profiles:
+      - clientserver
 
-  app:
+  clientserver-app:
     image: amazoncorretto:11
     command: >
       java -Dspring.config.location=/opt/project/sample-application/config/clientserver.application.properties
@@ -20,7 +22,22 @@ services:
       - "8080:8080"
     networks:
       - default
+    profiles:
+      - clientserver
 
+  embedded-app:
+    image: amazoncorretto:11
+    command: >
+      java -Dspring.config.location=/opt/project/sample-application/config/embedded.application.properties
+        -jar /opt/project/sample-application/target/spring-hazelcast-pipeline-dispatcher-sample-application-0.0.1-SNAPSHOT.jar
+    volumes:
+      - ".:/opt/project"
+    ports:
+      - "8080:8080"
+    networks:
+      - default
+    profiles:
+      - embedded
 
 networks:
   default: {}

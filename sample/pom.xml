@@ -12,7 +12,7 @@
 	<groupId>hazelcast.platform.solutions</groupId>
 	<artifactId>spring-hazelcast-pipeline-dispatcher-sample</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>spring-hazelcast-pipeline-dispatche-sampler</name>
+	<name>spring-hazelcast-pipeline-dispatcher-sample</name>
 	<description>Spring Hazelcast Pipeline Dispatcher Sample</description>
 
 	<!-- normally we would inherit this from the enclosing project but in this case the parent must be Spring Boot -->

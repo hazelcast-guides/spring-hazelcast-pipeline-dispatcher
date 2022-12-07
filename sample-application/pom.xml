@@ -11,7 +11,7 @@
 
     <groupId>hazelcast.platform.solutions</groupId>
     <artifactId>spring-hazelcast-pipeline-dispatcher-sample-application</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2-SNAPSHOT</version>
     <name>spring-hazelcast-pipeline-dispatcher-sample-application</name>
     <description>Spring Hazelcast Pipeline Dispatcher Sample Application</description>
 

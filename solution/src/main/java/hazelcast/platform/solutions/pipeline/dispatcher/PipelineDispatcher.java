@@ -8,6 +8,8 @@ import com.hazelcast.query.PredicateBuilder;
 import com.hazelcast.query.Predicates;
 import hazelcast.platform.solutions.pipeline.dispatcher.internal.RequestKey;
 import hazelcast.platform.solutions.pipeline.dispatcher.internal.RequestKeyFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.context.request.async.DeferredResult;
@@ -19,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 
 public class PipelineDispatcher<R,P> implements EntryAddedListener<RequestKey,P> {
+    private static Logger log = LoggerFactory.getLogger(PipelineDispatcher.class);
     RequestKeyFactory requestKeyFactory;
 
     private final String clientId;
@@ -46,12 +49,12 @@ public class PipelineDispatcher<R,P> implements EntryAddedListener<RequestKey,P>
 
     @Override
     public void entryAdded(EntryEvent<RequestKey, P> entryEvent) {
+        log.trace("Received response for {}", entryEvent.getKey());
         DeferredResult<P> result = pendingRequestMap.get(entryEvent.getKey());
         if (result != null){
             result.setResult(entryEvent.getValue());
         } else {
-            // TODO - probably should use a logger
-            System.err.println("WARNING: Could not find a pending request for " + entryEvent.getKey());
+            log.warn("Could not find a pending request for {}", entryEvent.getKey());
         }
     }
 
@@ -62,6 +65,7 @@ public class PipelineDispatcher<R,P> implements EntryAddedListener<RequestKey,P>
                 ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body("Request timeout occurred.")));
         pendingRequestMap.put(key, result);
         requestMap.putAsync(key, request);
+        log.trace("Sent request {}", key);
         return result;
     }
 }

@@ -1,6 +1,5 @@
 package hazelcast.platform.solutions.pipeline.dispatcher.sample;
 
-import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.jet.pipeline.Pipeline;
 import hazelcast.platform.solutions.pipeline.dispatcher.PipelineDispatcherFactory;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.DeferredResult;
 
 import javax.annotation.PostConstruct;
-import java.util.Set;
 
 @RestController
 public class ExampleService  {

@@ -14,7 +14,9 @@ services:
   clientserver-app:
     image: amazoncorretto:11
     command: >
-      java -Dspring.config.location=/opt/project/sample-application/config/clientserver.application.properties
+      java 
+        -Dspring.config.location=/opt/project/sample-application/config/clientserver.application.properties
+        -Dlogging.level.hazelcast.platform.solutions=WARN
         -jar /opt/project/sample-application/target/spring-hazelcast-pipeline-dispatcher-sample-application-0.0.1-SNAPSHOT.jar
     volumes:
       - ".:/opt/project"

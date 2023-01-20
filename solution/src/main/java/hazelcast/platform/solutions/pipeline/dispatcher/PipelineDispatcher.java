@@ -4,9 +4,7 @@ import com.hazelcast.core.EntryEvent;
 import com.hazelcast.map.IMap;
 import com.hazelcast.map.listener.EntryAddedListener;
 import com.hazelcast.query.Predicate;
-import com.hazelcast.query.PredicateBuilder;
 import com.hazelcast.query.Predicates;
-import hazelcast.platform.solutions.pipeline.dispatcher.internal.RequestKey;
 import hazelcast.platform.solutions.pipeline.dispatcher.internal.RequestKeyFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,20 +18,20 @@ import java.util.concurrent.ConcurrentHashMap;
  * PipelineDispatcher is designed to be a singleton scoped bean
  */
 
-public class PipelineDispatcher<R,P> implements EntryAddedListener<RequestKey,P> {
-    private static Logger log = LoggerFactory.getLogger(PipelineDispatcher.class);
+public class PipelineDispatcher<R,P> implements EntryAddedListener<String,P> {
+    private static final Logger log = LoggerFactory.getLogger(PipelineDispatcher.class);
     RequestKeyFactory requestKeyFactory;
 
     private final String clientId;
-    private final IMap<RequestKey, R> requestMap;
+    private final IMap<String, R> requestMap;
 
-    private final ConcurrentHashMap<RequestKey, DeferredResult<P>> pendingRequestMap;
+    private final ConcurrentHashMap<String, DeferredResult<P>> pendingRequestMap;
 
     private final long requestTimeoutMs;
     public PipelineDispatcher(
             RequestKeyFactory requestKeyFactory,
-            IMap<RequestKey, R> requestMap,
-            IMap<RequestKey, P> responseMap,
+            IMap<String, R> requestMap,
+            IMap<String, P> responseMap,
             long requestTimeoutMs){
         this.requestTimeoutMs = requestTimeoutMs;
         this.requestKeyFactory = requestKeyFactory;
@@ -42,13 +40,13 @@ public class PipelineDispatcher<R,P> implements EntryAddedListener<RequestKey,P>
         this.clientId = requestKeyFactory.newRandomClientId();
         this.requestMap = requestMap;
 
-        PredicateBuilder.EntryObject entry = Predicates.newPredicateBuilder().getEntryObject();
-        Predicate<RequestKey, P> myRequests = entry.key().get("clientId").equal(clientId);
+
+        Predicate<String, P> myRequests = Predicates.like("__key", clientId + "%");
         responseMap.addEntryListener(this, myRequests, true);
     }
 
     @Override
-    public void entryAdded(EntryEvent<RequestKey, P> entryEvent) {
+    public void entryAdded(EntryEvent<String, P> entryEvent) {
         log.trace("Received response for {}", entryEvent.getKey());
         DeferredResult<P> result = pendingRequestMap.get(entryEvent.getKey());
         if (result != null){
@@ -59,7 +57,7 @@ public class PipelineDispatcher<R,P> implements EntryAddedListener<RequestKey,P>
     }
 
     public DeferredResult<P> send(R  request){
-        RequestKey key = requestKeyFactory.newRequestKey(this.clientId);
+        String key = requestKeyFactory.newRequestKey(this.clientId);
         DeferredResult<P> result = new DeferredResult<>(requestTimeoutMs);
         result.onTimeout(() -> result.setErrorResult(
                 ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body("Request timeout occurred.")));

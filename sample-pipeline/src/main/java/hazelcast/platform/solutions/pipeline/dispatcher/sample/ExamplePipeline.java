@@ -5,7 +5,6 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.jet.datamodel.Tuple2;
 import com.hazelcast.jet.pipeline.*;
-import hazelcast.platform.solutions.pipeline.dispatcher.internal.RequestKey;
 
 import java.util.Map;
 
@@ -26,14 +25,14 @@ public class ExamplePipeline {
     static Pipeline createPipeline(String requestMapName, String responseMapName) {
         Pipeline pipeline = Pipeline.create();
 
-        StreamStage<Map.Entry<RequestKey, String>> requestMapEntries =
-                pipeline.<Map.Entry<RequestKey, String>>readFrom(
+        StreamStage<Map.Entry<String, String>> requestMapEntries =
+                pipeline.<Map.Entry<String, String>>readFrom(
                         Sources.mapJournal(requestMapName, JournalInitialPosition.START_FROM_OLDEST))
                         .withIngestionTimestamps();
 
         requestMapEntries.writeTo(Sinks.logger( entry -> "Process Request: " + entry.getKey()));
 
-        StreamStage<Tuple2<RequestKey, String>> reversedStrings = requestMapEntries.map(entry -> Tuple2.tuple2(
+        StreamStage<Tuple2<String, String>> reversedStrings = requestMapEntries.map(entry -> Tuple2.tuple2(
                 entry.getKey(),
                 new StringBuilder(entry.getValue()).reverse().toString()));
 

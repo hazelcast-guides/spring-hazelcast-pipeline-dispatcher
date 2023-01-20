@@ -11,18 +11,15 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Component
 public class RequestKeyFactory {
-    private ConcurrentHashMap<String, AtomicLong> requestIdMap;
+    private final ConcurrentHashMap<String, AtomicLong> requestIdMap;
 
     public RequestKeyFactory(){
         requestIdMap = new ConcurrentHashMap<>();
     }
 
-    public RequestKey newRequestKey(String clientID){
+    public String newRequestKey(String clientID){
         AtomicLong nextId = requestIdMap.computeIfAbsent(clientID, k -> new AtomicLong());
-        RequestKey result = new RequestKey();
-        result.setClientId(clientID);
-        result.setRequestId(nextId.getAndIncrement());
-        return result;
+        return clientID + "|" + nextId.getAndIncrement();
     }
 
     /**

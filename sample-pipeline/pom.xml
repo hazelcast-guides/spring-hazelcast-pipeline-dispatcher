@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>hazelcast.platform.solutions</groupId>
 		<artifactId>spring-hazelcast-pipeline-dispatcher-parent</artifactId>
-		<version>1.0.2</version>
+		<version>1.0.3-SNAPSHOT</version>
 	</parent>
 
 	<!-- inherit version from the parent -->

@@ -9,6 +9,7 @@ import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.config.YamlConfigBuilder;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import hazelcast.platform.solutions.pipeline.dispatcher.internal.DefaultRequestRouter;
 import hazelcast.platform.solutions.pipeline.dispatcher.internal.RequestKeyFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -37,7 +38,7 @@ public class PipelineDispatcherFactory {
         PipelineDispatcher<R,P> result = dispatcherMap.computeIfAbsent(name, k ->
             new PipelineDispatcher<R,P>(
                 this.requestKeyFactory,
-                this.hazelcastInstance.getMap(k + "_request"),
+                new DefaultRequestRouter<R>(hazelcastInstance, k),
                 this.hazelcastInstance.getMap(k + "_response"),
                 requestTimeoutMs));
 

@@ -23,14 +23,15 @@ public class PipelineDispatcher<R,P> implements EntryAddedListener<String,P> {
     RequestKeyFactory requestKeyFactory;
 
     private final String clientId;
-    private final IMap<String, R> requestMap;
+
+    private final RequestRouter<R> requestRouter;
 
     private final ConcurrentHashMap<String, DeferredResult<P>> pendingRequestMap;
 
     private final long requestTimeoutMs;
     public PipelineDispatcher(
             RequestKeyFactory requestKeyFactory,
-            IMap<String, R> requestMap,
+            RequestRouter<R> requestRouter,
             IMap<String, P> responseMap,
             long requestTimeoutMs){
         this.requestTimeoutMs = requestTimeoutMs;
@@ -38,7 +39,7 @@ public class PipelineDispatcher<R,P> implements EntryAddedListener<String,P> {
         this.pendingRequestMap = new ConcurrentHashMap<>();
 
         this.clientId = requestKeyFactory.newRandomClientId();
-        this.requestMap = requestMap;
+        this.requestRouter = requestRouter;
 
 
         Predicate<String, P> myRequests = Predicates.like("__key", clientId + "%");
@@ -62,7 +63,7 @@ public class PipelineDispatcher<R,P> implements EntryAddedListener<String,P> {
         result.onTimeout(() -> result.setErrorResult(
                 ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body("Request timeout occurred.")));
         pendingRequestMap.put(key, result);
-        requestMap.putAsync(key, request);
+        requestRouter.send(key, request);
         log.trace("Sent request {}", key);
         return result;
     }

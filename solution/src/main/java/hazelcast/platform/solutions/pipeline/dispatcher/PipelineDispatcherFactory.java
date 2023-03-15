@@ -38,7 +38,7 @@ public class PipelineDispatcherFactory {
         PipelineDispatcher<R,P> result = dispatcherMap.computeIfAbsent(name, k ->
             new PipelineDispatcher<R,P>(
                 this.requestKeyFactory,
-                new DefaultRequestRouter<R>(hazelcastInstance, k),
+                    new DefaultRequestRouter<>(hazelcastInstance, k),
                 this.hazelcastInstance.getMap(k + "_response"),
                 requestTimeoutMs));
 

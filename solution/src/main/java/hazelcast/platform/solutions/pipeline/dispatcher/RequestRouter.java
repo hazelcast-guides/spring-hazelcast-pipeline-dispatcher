@@ -6,6 +6,6 @@ package hazelcast.platform.solutions.pipeline.dispatcher;
  * Pipelines, based on configuration.
  * @param <R>
  */
-public interface RequestRouter<R> {
-    void send(String key, R request);
+public interface RequestRouter{
+    void send(String key, Object request);
 }

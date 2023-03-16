@@ -120,7 +120,7 @@ public class PipelineDispatcherFactory implements
             }
         }
 
-//        hazelcastInstance.getMap(ROUTER_CONFIG_MAP).addEntryListener(this, true);
+        hazelcastInstance.getMap(ROUTER_CONFIG_MAP).addEntryListener(this, true);
     }
 
     /**

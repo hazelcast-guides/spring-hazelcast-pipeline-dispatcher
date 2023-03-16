@@ -5,7 +5,10 @@ package hazelcast.platform.solutions.pipeline.dispatcher;
  * This abstraction enables the possibility of sending to different maps and therefore different service implementation
  * Pipelines, based on configuration.
  * @param <R>
+ *
+ * Note that "getRequestMapName" should be called every time a request is dispatched since it is possible that
+ * consecutive requests are routed to different versions.
  */
 public interface RequestRouter{
-    void send(String key, Object request);
+    String getRequestMapName();
 }

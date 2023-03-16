@@ -7,9 +7,15 @@ import com.hazelcast.client.config.YamlClientConfigBuilder;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.config.YamlConfigBuilder;
+import com.hazelcast.core.EntryEvent;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.map.listener.EntryAddedListener;
+import com.hazelcast.map.listener.EntryRemovedListener;
+import com.hazelcast.map.listener.EntryUpdatedListener;
 import hazelcast.platform.solutions.pipeline.dispatcher.internal.DefaultRequestRouter;
+import hazelcast.platform.solutions.pipeline.dispatcher.internal.MultiVersionRequestRouter;
+import hazelcast.platform.solutions.pipeline.dispatcher.internal.MultiVersionRequestRouterConfig;
 import hazelcast.platform.solutions.pipeline.dispatcher.internal.RequestKeyFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -22,7 +28,13 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class PipelineDispatcherFactory {
+public class PipelineDispatcherFactory implements
+        EntryAddedListener<String, Object>,
+        EntryRemovedListener<String,Object>,
+        EntryUpdatedListener<String,Object> {
+
+    public static final String ROUTER_CONFIG_MAP = "router_config";
+
     @Value("${hazelcast.pipeline.dispatcher.embed_hazelcast:false}")
     private boolean embedHazelcast;
 
@@ -35,12 +47,24 @@ public class PipelineDispatcherFactory {
     private long requestTimeoutMs;
 
     public <R,P> PipelineDispatcher<R,P> dispatcherFor(String name){
-        PipelineDispatcher<R,P> result = dispatcherMap.computeIfAbsent(name, k ->
-            new PipelineDispatcher<R,P>(
-                this.requestKeyFactory,
-                    new DefaultRequestRouter<>(hazelcastInstance, k),
-                this.hazelcastInstance.getMap(k + "_response"),
-                requestTimeoutMs));
+        PipelineDispatcher<R,P> result = dispatcherMap.computeIfAbsent(name, k -> {
+            Object routerConfig = getRouterConfigFor(k);
+            RequestRouter rr;
+            if (routerConfig != null){
+                // currently, the only type of router supported is the MultiVersionRequestRouter, so we assume here
+                // that any entry in the ROUTER_CONFIG_MAP map is a MultiVersionRequestRouterConfig instance
+                rr = new MultiVersionRequestRouter(k, (MultiVersionRequestRouterConfig) routerConfig);
+            } else {
+                rr = new DefaultRequestRouter(k);
+            }
+            return new PipelineDispatcher<R,P>(
+                    this.requestKeyFactory,
+                    hazelcastInstance,
+                    name,
+                    rr,
+                    requestTimeoutMs);
+        });
+
 
         return result;
     }
@@ -95,6 +119,15 @@ public class PipelineDispatcherFactory {
                         "An error occurred while attempting to read file: \"" + hazelcastConfigFile + "\".", iox);
             }
         }
+
+//        hazelcastInstance.getMap(ROUTER_CONFIG_MAP).addEntryListener(this, true);
+    }
+
+    /**
+     * Retrieves the router configuration.  May return null.
+     */
+    private Object getRouterConfigFor(String name){
+        return hazelcastInstance.getMap(ROUTER_CONFIG_MAP).get(name);
     }
 
     public HazelcastInstance getEmbeddedHazelcastInstance(){
@@ -107,5 +140,37 @@ public class PipelineDispatcherFactory {
     @PreDestroy
     public void close(){
         hazelcastInstance.shutdown();
+    }
+
+    @Override
+    public void entryAdded(EntryEvent<String, Object> event) {
+        // again we are assuming that the only possible value type is MutliVersionRequestRouterConfig
+        String name = event.getKey();
+        handleAddUpdate(name, (MultiVersionRequestRouterConfig) event.getValue());
+    }
+
+    @Override
+    public void entryUpdated(EntryEvent<String, Object> event) {
+        // again we are assuming that the only possible value type is MutliVersionRequestRouterConfig
+        String name = event.getKey();
+        handleAddUpdate(name, (MultiVersionRequestRouterConfig) event.getValue());
+    }
+
+    @Override
+    public void entryRemoved(EntryEvent<String, Object> event) {
+        String name = event.getKey();
+        handleRemove(name);
+    }
+
+    private <R,P> void handleAddUpdate(String name, MultiVersionRequestRouterConfig config){
+        RequestRouter rr =  new MultiVersionRequestRouter(name, config);
+        dispatcherMap.put(name,
+                new PipelineDispatcher<R,P>(this.requestKeyFactory, hazelcastInstance, name, rr, requestTimeoutMs));
+
+    }
+
+    private <R,P> void handleRemove(String name){
+        RequestRouter rr = new DefaultRequestRouter(name);
+        dispatcherMap.put(name, new PipelineDispatcher<R,P>(this.requestKeyFactory, hazelcastInstance, name, rr, requestTimeoutMs));
     }
 }

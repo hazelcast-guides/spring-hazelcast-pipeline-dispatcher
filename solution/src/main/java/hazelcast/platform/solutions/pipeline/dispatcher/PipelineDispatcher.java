@@ -1,6 +1,7 @@
 package hazelcast.platform.solutions.pipeline.dispatcher;
 
 import com.hazelcast.core.EntryEvent;
+import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.map.IMap;
 import com.hazelcast.map.listener.EntryAddedListener;
 import com.hazelcast.query.Predicate;
@@ -24,15 +25,19 @@ public class PipelineDispatcher<R,P> implements EntryAddedListener<String,P> {
 
     private final String clientId;
 
-    private final RequestRouter<R> requestRouter;
+    private final RequestRouter requestRouter;
 
     private final ConcurrentHashMap<String, DeferredResult<P>> pendingRequestMap;
 
+    private final HazelcastInstance hz;
+
     private final long requestTimeoutMs;
+
     public PipelineDispatcher(
             RequestKeyFactory requestKeyFactory,
-            RequestRouter<R> requestRouter,
-            IMap<String, P> responseMap,
+            HazelcastInstance hz,
+            String name,
+            RequestRouter requestRouter,
             long requestTimeoutMs){
         this.requestTimeoutMs = requestTimeoutMs;
         this.requestKeyFactory = requestKeyFactory;
@@ -40,8 +45,10 @@ public class PipelineDispatcher<R,P> implements EntryAddedListener<String,P> {
 
         this.clientId = requestKeyFactory.newRandomClientId();
         this.requestRouter = requestRouter;
+        this.hz = hz;
 
-
+        // add the response listener to the response map
+        IMap<String, P> responseMap = hz.getMap(name + "_response");
         Predicate<String, P> myRequests = Predicates.like("__key", clientId + "%");
         responseMap.addEntryListener(this, myRequests, true);
     }
@@ -62,8 +69,9 @@ public class PipelineDispatcher<R,P> implements EntryAddedListener<String,P> {
         DeferredResult<P> result = new DeferredResult<>(requestTimeoutMs);
         result.onTimeout(() -> result.setErrorResult(
                 ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body("Request timeout occurred.")));
+        IMap<String,R> requestMap = hz.getMap(requestRouter.getRequestMapName());
         pendingRequestMap.put(key, result);
-        requestRouter.send(key, request);
+        requestMap.putAsync(key, request);
         log.trace("Sent request {}", key);
         return result;
     }

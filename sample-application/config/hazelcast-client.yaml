@@ -1,6 +1,8 @@
 hazelcast-client:
   cluster-name: dev
   instance-name: myappserver
+  properties:
+    hazelcast.logging.type: slf4j
   network:
     cluster-members:
       - hz-pipeline:5701

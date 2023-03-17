@@ -17,6 +17,8 @@ import hazelcast.platform.solutions.pipeline.dispatcher.internal.DefaultRequestR
 import hazelcast.platform.solutions.pipeline.dispatcher.internal.MultiVersionRequestRouter;
 import hazelcast.platform.solutions.pipeline.dispatcher.internal.MultiVersionRequestRouterConfig;
 import hazelcast.platform.solutions.pipeline.dispatcher.internal.RequestKeyFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -32,6 +34,8 @@ public class PipelineDispatcherFactory implements
         EntryAddedListener<String, Object>,
         EntryRemovedListener<String,Object>,
         EntryUpdatedListener<String,Object> {
+
+    private static final Logger log = LoggerFactory.getLogger(PipelineDispatcherFactory.class);
 
     public static final String ROUTER_CONFIG_MAP = "router_config";
 
@@ -82,43 +86,7 @@ public class PipelineDispatcherFactory implements
         this.requestKeyFactory = new RequestKeyFactory();
 
         // create the hazelcast instance
-        File configFile = new File(hazelcastConfigFile);
-        if (!configFile.exists()) {
-            throw new RuntimeException("Required configuration file \"" + configFile + "\" not found.");
-        }
-        if (!configFile.canRead()) {
-            throw new RuntimeException("Cannot read Hazelcast configuration file:\" " + configFile + "\"");
-        }
-
-        boolean isXML = hazelcastConfigFile.endsWith(".xml");
-        if (!isXML) {
-            if (!hazelcastConfigFile.endsWith(".yaml") && !hazelcastConfigFile.endsWith(".yml")) {
-                throw new RuntimeException("Hazelcast configuration file name must end with \".xml\", \".yml\" or \".yaml\".");
-            }
-        }
-
-        if (embedHazelcast) {
-            try {
-                Config config = isXML ?
-                        new XmlConfigBuilder(hazelcastConfigFile).build()
-                        : new YamlConfigBuilder(hazelcastConfigFile).build();
-                this.hazelcastInstance = Hazelcast.newHazelcastInstance(config);
-            } catch (FileNotFoundException nfx) {
-                // this should never happen since we've already checked for the existence of this file
-                throw new RuntimeException(
-                        "Could not find required configuration file: \"" + hazelcastConfigFile + "\"");
-            }
-        } else {
-            try {
-                ClientConfig config = isXML ?
-                        new XmlClientConfigBuilder(configFile).build() :
-                        new YamlClientConfigBuilder(configFile).build();
-                this.hazelcastInstance = HazelcastClient.newHazelcastClient(config);
-            } catch (IOException iox) {
-                throw new RuntimeException(
-                        "An error occurred while attempting to read file: \"" + hazelcastConfigFile + "\".", iox);
-            }
-        }
+        this.hazelcastInstance = HazelcastUtil.buildHazelcastInstance(hazelcastConfigFile, embedHazelcast);
 
         hazelcastInstance.getMap(ROUTER_CONFIG_MAP).addEntryListener(this, true);
     }
@@ -167,10 +135,12 @@ public class PipelineDispatcherFactory implements
         dispatcherMap.put(name,
                 new PipelineDispatcher<R,P>(this.requestKeyFactory, hazelcastInstance, name, rr, requestTimeoutMs));
 
+        log.info("Received routing update for \"" + name + "\" : " + config);
     }
 
     private <R,P> void handleRemove(String name){
         RequestRouter rr = new DefaultRequestRouter(name);
         dispatcherMap.put(name, new PipelineDispatcher<R,P>(this.requestKeyFactory, hazelcastInstance, name, rr, requestTimeoutMs));
+        log.info("Set routing policy for \"" + name + "\" to default.");
     }
 }

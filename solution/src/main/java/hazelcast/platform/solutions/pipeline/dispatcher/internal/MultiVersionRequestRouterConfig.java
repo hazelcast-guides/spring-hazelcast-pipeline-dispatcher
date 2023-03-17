@@ -27,7 +27,7 @@ public class MultiVersionRequestRouterConfig implements Serializable {
     /*
      * Throws a RuntimeException if all checks are not passed;
      */
-    private void check(){
+    public void check(){
         if (versions == null || percentages == null || versions.size() == 0 || percentages.size() == 0){
             throw new RuntimeException("Error while creating MultiVersionRequestRouter configuration.  " +
                     "Version list and percentage list must both be non-null and non-empty lists");
@@ -76,5 +76,29 @@ public class MultiVersionRequestRouterConfig implements Serializable {
             if (f <= percentages.get(i)) break;
         }
         return versions.get(i);
+    }
+
+    public List<String> getVersions() {
+        return versions;
+    }
+
+    public void setVersions(List<String> versions) {
+        this.versions = versions;
+    }
+
+    public List<Float> getPercentages() {
+        return percentages;
+    }
+
+    public void setPercentages(List<Float> percentages) {
+        this.percentages = percentages;
+    }
+
+    @Override
+    public String toString() {
+        return "MultiVersionRequestRouterConfig{" +
+                "versions=" + versions +
+                ", percentages=" + percentages +
+                '}';
     }
 }

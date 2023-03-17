@@ -8,8 +8,6 @@ services:
       - ".:/opt/project"
     networks:
       - default
-    profiles:
-      - clientserver
 
   clientserver-app:
     image: amazoncorretto:11
@@ -24,8 +22,6 @@ services:
       - "8080:8080"
     networks:
       - default
-    profiles:
-      - clientserver
 
   embedded-app:
     image: amazoncorretto:11
@@ -40,6 +36,30 @@ services:
       - default
     profiles:
       - embedded
+
+  mc:
+    image: hazelcast/management-center:5.2.1
+    environment:
+      MC_DEFAULT_CLUSTER: dev
+      MC_DEFAULT_CLUSTER_MEMBERS: hz-pipeline:5701
+    ports:
+      - "8888:8080"
+    networks:
+      - default
+
+  load-routing-config:
+    image: amazoncorretto:11
+    command: >
+      java -cp /opt/project/solution/target/spring-hazelcast-pipeline-dispatcher-1.0.3-SNAPSHOT.jar:/opt/project/solution/target/dependency/*
+           hazelcast.platform.solutions.pipeline.dispatcher.RoutingConfigLoader 
+           /opt/project/sample-application/config/hazelcast-client.yaml 
+           /opt/project/reverse_routing.json
+    volumes:
+      - ".:/opt/project"
+    networks:
+      - default
+    profiles:
+      - disabled
 
 networks:
   default: {}

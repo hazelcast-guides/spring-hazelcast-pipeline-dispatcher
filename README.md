@@ -1,14 +1,17 @@
 # Overview
 
-This connector enables the use of Hazelcast Pipelines to service HTTP Requests.  This approach separates the 
-HTTP Connection handling and the response computation.  A regular Spring Boot application handles the HTTP connection 
-and the Hazelcast cluster, running a Pipeline, handles the response computation.  
+This connector enables the use of Hazelcast Pipelines to service HTTP Requests.  One major benefit of this approach is 
+the ability to have multiple implementations of a service and control the amount of traffic directed to each, enabling 
+blue/green style deployments.
 
-Some advantages of this approach are:
+Some additional advantages of this approach are:
 - The Spring Boot application is very light and stateless.  It is easy to scale simply by running multiple instances behind a load balancer.
 - The Spring Boot application servers contain no business logic or data, making them safer to run in an internet facing subnet.
 - The business logic is in an independently deployable Hazelcast pipeline.  The logic can be updated by deploying a new Pipeline, without touching the web servers.
 - The web tier and the business logic tiers scale independently.
+- Compute resources do not have to be specifically assigned to each service.  Instead, all service implementations 
+  share the compute resources of a Hazelcast cluster.  Adding compute capacity is as easy as adding servers to the 
+  cluster.
 
 # Running the Example
 A sample spring boot application that uses the Hazelcast pipeline dispatcher is included 
@@ -29,7 +32,16 @@ You can also run the example with the Hazelcast instance embedded in the web app
 
 `docker compose --profile embedded up -d`.
 
-# Usage
+Both the "embedded" profile and the "clientserver" profile start a Hazelcast Management Center, which can be accessed 
+at `http://localhost:8888`.
+
+# Basic Usage
+
+This section covers the single implementation per service scenario.  Blue/Green deployment is covered in a later 
+section. Using Blue/Green deployment requires additional configuration on the Hazelcast cluster but does not change the 
+web service at all.  
+
+## The Web Service
 
 Include the following maven dependency in your project (replace VERSION with the version you wish to use).
 ```xml
@@ -53,7 +65,7 @@ public class ExampleService {
     //...
 }
 ```
-To dispatch a request to the Hazelcast Pipeline use code similar to the following.
+Dispatch a request to Hazelcast using code similar to the following.
 
 ```java
     @GetMapping("/reverse")
@@ -61,19 +73,55 @@ To dispatch a request to the Hazelcast Pipeline use code similar to the followin
         return pipelineDispatcherFactory.<String,String>dispatcherFor("reverse").send(input);
     }
 ```
-The `dispatcherFor` method takes a pipeline name.  In the example above, the pipeline name is "reverse".  The 
-request will be sent to a Hazelcast IMap named "reverse_request" and the response will be returned 
-in a Hazelcast IMap named "reverse_response."  The pipeline implementation must use the "reverse_request" 
-map as a source and the "reverse_response" map as a sink.
+The *dispatcherFor* method takes a service name.  In the example above, the service name is *reverse*.  
 
-The `dispatcherFor` method has two type parameters.  The first is the type of the input and the second is the type 
+The *dispatcherFor* method has two type parameters.  The first is the type of the input and the second is the type 
 of the output.  In this example, the input and output types are both Strings.  These should 
-match with the types expected by and produced by the pipeline.
+match with the types expected by and produced by the pipeline that implements the service.
+
+
+### Configuring the Connection to Hazelcast
+
+The pipeline dispatcher is configured using properties from the Spring Environment per the usual Spring Boot
+mechanism. See, for example, https://www.baeldung.com/properties-with-spring for more details. The properties
+used by the pipeline dispatcher are given below.
+
+| Property                                            | Description                                                                                                              |
+|-----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| hazelcast.pipeline.dispatcher.embed_hazelcast       | Whether to start a Hazelcast instance embedded in the application server (true) or connect to a remote instance (false). |
+| hazelcast.pipeline.dispatcher.hazelcast_config_file | The configuration file used to initialize the hazelcast server (if embedded) or the hazelcast client (if not).           |
+| hazelcast.pipeline.dispatcher.request_timeout_ms    | The number of milliseconds to wait for a response from the pipeline.  A timeout response will be returned if the response does not arrive after this amount of time. |
+
+
+# Implementing the Service with a Hazelcast Pipeline
+
+Pipelines that implement services must follow these guidelines.  
+1. It  must read the request from an *IMap* backed *StreamSource* created using *Sources.mapJournal*
+2. It must write the response to an *IMap* backed *Sink* created using *Sinks.map*. 
+3. The request and response types must be serializable and must correspond to the types declared by the corresponding 
+   *PipelineDispatcher*
+4. The map names must follow a certain convention, which is described below.
+
+See *hazelcast.platform.solutions.pipeline.dispatcher.sample.ExamplePipeline* for an example.
+
+## Map Naming Conventions
+
+By default, the name of the input map is *SERVICE_NAME_request* and the output map is *SERVICE_NAME_response*. For 
+example, for a service named *reverse*, the input and output maps would be, respectively, *reverse_request* and 
+*reverse_response*.  
+
+However, it is also possible to run multiple versions of a service at the same time and to route traffic between them.
+If multi-version support is enabled (see below) then the name of the input map changes to include the version name.
+Version names can be any simple string.  For example, if you wish to deploy to version of the *reverse* service, say 
+*v1* and *v2* then the corresponding input map names would be *reverse_v1_request* and *reverse_v2_request*.  
+
+> Note that the output map is not version specific.  both pipelines would  write their output to 
+> the *reverse_response* map.  
 
 # Embedding a Hazelcast Instance 
 
-A Hazelcast instance can be embedded into the application server by setting the `hazelcast.pipeline.dispatcher.embed_hazelcast` 
-property to `true`. The `hazelcast.pipeline.dispatcher.hazelcast_config_file` property must point to an xml or yaml 
+A Hazelcast instance can be embedded into the application server by setting the *hazelcast.pipeline.dispatcher.embed_hazelcast* 
+property to *true*. The *hazelcast.pipeline.dispatcher.hazelcast_config_file* property must point to an xml or yaml 
 hazelcast server configuration file.  In this case, the application can deploy a pipeline using code 
 similar to the following.
 ```java
@@ -97,19 +145,6 @@ public class ExampleService {
     }
 }
 ```
-
-# Configuration
-
-The pipeline dispatcher is configured using properties from the Spring Environment per the usual Spring Boot 
-mechanism. See, for example, https://www.baeldung.com/properties-with-spring for more details. The properties 
-used by the pipeline dispatcher are given below.
-
-| Property                                            | Description                                                                                                              |
-|-----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| hazelcast.pipeline.dispatcher.embed_hazelcast       | Whether to start a Hazelcast instance embedded in the application server (true) or connect to a remote instance (false). |
-| hazelcast.pipeline.dispatcher.hazelcast_config_file | The configuration file used to initialize the hazelcast server (if embedded) or the hazelcast client (if not).           |
-| hazelcast.pipeline.dispatcher.request_timeout_ms    | The number of milliseconds to wait for a response from the pipeline.  A timeout response will be returned if the response does not arrive after this amount of time. |
-
 
 
 # Implementation Details

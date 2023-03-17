@@ -6,7 +6,7 @@ public class DefaultRequestRouter implements RequestRouter {
 
     private final  String requestMapName;
     public DefaultRequestRouter(String name){
-        this.requestMapName = name + "_default_request";
+        this.requestMapName = name + "_request";
     }
 
     @Override

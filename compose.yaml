@@ -8,6 +8,8 @@ services:
       - ".:/opt/project"
     networks:
       - default
+    profiles:
+      - clientserver
 
   clientserver-app:
     image: amazoncorretto:11
@@ -22,6 +24,8 @@ services:
       - "8080:8080"
     networks:
       - default
+    profiles:
+      - clientserver
 
   embedded-app:
     image: amazoncorretto:11
@@ -46,14 +50,66 @@ services:
       - "8888:8080"
     networks:
       - default
+    profiles:
+      - clientserver
+
+  embedded-mc:
+    image: hazelcast/management-center:5.2.1
+    environment:
+      MC_DEFAULT_CLUSTER: dev
+      MC_DEFAULT_CLUSTER_MEMBERS: embedded-app:5701
+    ports:
+      - "8888:8080"
+    networks:
+      - default
+    profiles:
+      - embedded
 
   load-routing-config:
     image: amazoncorretto:11
     command: >
       java -cp /opt/project/solution/target/spring-hazelcast-pipeline-dispatcher-1.0.3-SNAPSHOT.jar:/opt/project/solution/target/dependency/*
-           hazelcast.platform.solutions.pipeline.dispatcher.RoutingConfigLoader 
-           /opt/project/sample-application/config/hazelcast-client.yaml 
-           /opt/project/reverse_routing.json
+           hazelcast.platform.solutions.pipeline.dispatcher.RoutingConfigTool load 
+           --hz-cluster-name dev --hz-servers hz-pipeline:5701 --input /opt/project/reverse_routing.json
+    volumes:
+      - ".:/opt/project"
+    networks:
+      - default
+    profiles:
+      - disabled
+
+  dump-routing-config:
+    image: amazoncorretto:11
+    command: >
+      java -cp /opt/project/solution/target/spring-hazelcast-pipeline-dispatcher-1.0.3-SNAPSHOT.jar:/opt/project/solution/target/dependency/*
+           hazelcast.platform.solutions.pipeline.dispatcher.RoutingConfigTool dump 
+           --hz-cluster-name dev --hz-servers hz-pipeline:5701
+    volumes:
+      - ".:/opt/project"
+    networks:
+      - default
+    profiles:
+      - disabled
+
+  embedded-load-routing-config:
+    image: amazoncorretto:11
+    command: >
+      java -cp /opt/project/solution/target/spring-hazelcast-pipeline-dispatcher-1.0.3-SNAPSHOT.jar:/opt/project/solution/target/dependency/*
+           hazelcast.platform.solutions.pipeline.dispatcher.RoutingConfigTool load 
+           --hz-cluster-name dev --hz-servers embedded-app:5701 --input /opt/project/reverse_routing.json
+    volumes:
+      - ".:/opt/project"
+    networks:
+      - default
+    profiles:
+      - disabled
+
+  embedded-dump-routing-config:
+    image: amazoncorretto:11
+    command: >
+      java -cp /opt/project/solution/target/spring-hazelcast-pipeline-dispatcher-1.0.3-SNAPSHOT.jar:/opt/project/solution/target/dependency/*
+           hazelcast.platform.solutions.pipeline.dispatcher.RoutingConfigTool dump 
+           --hz-cluster-name dev --hz-servers embedded-app:5701
     volumes:
       - ".:/opt/project"
     networks:

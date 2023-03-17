@@ -47,11 +47,16 @@
 			<artifactId>jackson-databind</artifactId>
 			<version>${jackson.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>net.sourceforge.argparse4j</groupId>
+			<artifactId>argparse4j</artifactId>
+			<version>${argparse4j.version}</version>
+		</dependency>
 	</dependencies>
 
 	<build>
 		<plugins>
-			<!-- Copy the dependencies into one place.  This is required only for the RoutingConfigLoader -->
+			<!-- Copy the dependencies into one place.  This is required only for the RoutingConfigTool -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>

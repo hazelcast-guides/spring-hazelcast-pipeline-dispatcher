@@ -232,3 +232,7 @@ When a result with the matching client id is put into response map, the correct 
 It will then use the unique id to look up the correct `DeferredResult` instance. The result will be sent to the original 
 HTTP/REST client by calling `DeferredResult.setResult` method.
 
+# Release Notes
+
+## 1.1 
+- Multi-version routing

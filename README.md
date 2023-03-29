@@ -94,8 +94,23 @@ used by the pipeline dispatcher are given below.
 | Property                                            | Description                                                                                                              |
 |-----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
 | hazelcast.pipeline.dispatcher.embed_hazelcast       | Whether to start a Hazelcast instance embedded in the application server (true) or connect to a remote instance (false). |
-| hazelcast.pipeline.dispatcher.hazelcast_config_file | The configuration file used to initialize the hazelcast server (if embedded) or the hazelcast client (if not).           |
 | hazelcast.pipeline.dispatcher.request_timeout_ms    | The number of milliseconds to wait for a response from the pipeline.  A timeout response will be returned if the response does not arrive after this amount of time. |
+
+Additionally, you need to set the path to a Hazelcast configuration file.  
+
+For the client-server configuration, you can either put a file called *hazelcast-client.xml* on the class path or set
+the *hazelcast.client.config* system property to the location of your configuration files.  For more details on 
+configuring the connection to Hazelcast in client-server mode, see 
+https://docs.hazelcast.com/hazelcast/5.2/clients/java#configuring-java-client.
+
+For embedded mode, you can put a *hazelcast.xml* or *hazelcast.yaml* file in the working directory or on the classpath.
+Alternatively, you can specify the location of a configuration file using the *hazelcast.config* system property. For 
+more information about configuring Hazelcast in embedded mode, see 
+https://docs.hazelcast.com/hazelcast/5.2/configuration/understanding-configuration#configuration-precedence.
+
+> **NOTE** 
+> *hazelcast.client.config* and *hazelcast.config* must be configured as system properties.  Hazelcast will not use the 
+> Spring Environment abstraction for these.
 
 ### Embedding a Hazelcast Instance
 For most use cases it makes more sense connect to a remote Hazelcast cluster.  However, it is possible to embed a 

@@ -1,14 +1,6 @@
 package hazelcast.platform.solutions.pipeline.dispatcher;
 
-import com.hazelcast.client.HazelcastClient;
-import com.hazelcast.client.config.ClientConfig;
-import com.hazelcast.client.config.XmlClientConfigBuilder;
-import com.hazelcast.client.config.YamlClientConfigBuilder;
-import com.hazelcast.config.Config;
-import com.hazelcast.config.XmlConfigBuilder;
-import com.hazelcast.config.YamlConfigBuilder;
 import com.hazelcast.core.EntryEvent;
-import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.map.listener.EntryAddedListener;
 import com.hazelcast.map.listener.EntryRemovedListener;
@@ -24,9 +16,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -41,10 +30,6 @@ public class PipelineDispatcherFactory implements
 
     @Value("${hazelcast.pipeline.dispatcher.embed_hazelcast:false}")
     private boolean embedHazelcast;
-
-    // if hazelcast is embedded, provide a server config file, otherwise, provide a client config file
-    @Value("${hazelcast.pipeline.dispatcher.hazelcast_config_file}")
-    private String hazelcastConfigFile;
 
     // the maximum amount of time, in milliseconds to wait before returning a timeout error
     @Value("${hazelcast.pipeline.dispatcher.request_timeout_ms}")
@@ -86,7 +71,7 @@ public class PipelineDispatcherFactory implements
         this.requestKeyFactory = new RequestKeyFactory();
 
         // create the hazelcast instance
-        this.hazelcastInstance = HazelcastUtil.buildHazelcastInstance(hazelcastConfigFile, embedHazelcast);
+        this.hazelcastInstance = HazelcastUtil.buildHazelcastInstance(embedHazelcast);
 
         hazelcastInstance.getMap(ROUTER_CONFIG_MAP).addEntryListener(this, true);
     }

@@ -58,6 +58,7 @@ public class PipelineDispatcher<R,P> implements EntryAddedListener<String,P> {
         log.trace("Received response for {}", entryEvent.getKey());
         DeferredResult<P> result = pendingRequestMap.get(entryEvent.getKey());
         if (result != null){
+            log.info("RECEIVED " + entryEvent.getKey() + " : (" + entryEvent.getValue().getClass().getName() + ")");
             result.setResult(entryEvent.getValue());
         } else {
             log.warn("Could not find a pending request for {}", entryEvent.getKey());

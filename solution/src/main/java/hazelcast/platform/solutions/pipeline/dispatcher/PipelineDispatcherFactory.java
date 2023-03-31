@@ -32,7 +32,7 @@ public class PipelineDispatcherFactory implements
     private boolean embedHazelcast;
 
     // the maximum amount of time, in milliseconds to wait before returning a timeout error
-    @Value("${hazelcast.pipeline.dispatcher.request_timeout_ms}")
+    @Value("${hazelcast.pipeline.dispatcher.request_timeout_ms:3000}")
     private long requestTimeoutMs;
 
     public <R,P> PipelineDispatcher<R,P> dispatcherFor(String name){

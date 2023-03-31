@@ -1,8 +1,9 @@
 # Overview
 
-This connector enables the use of Hazelcast Pipelines to service HTTP Requests.  One major benefit of this approach is 
+This connector enables the use of Hazelcast Pipelines to service REST/HTTP Requests.  One major benefit of this approach is 
 the ability to have multiple implementations of a service and control the amount of traffic directed to each, enabling 
-blue/green style deployments.
+blue/green style deployments.  It also enables web service implementations to be managed within Hazelcast in the same 
+way that event processing workloads are managed, thus simplifying operations.
 
 Some additional advantages of this approach are:
 - The Spring Boot application is very light and stateless.  It is easy to scale simply by running multiple instances behind a load balancer.
@@ -73,12 +74,18 @@ public class ExampleService {
 Dispatch a request to Hazelcast using code similar to the following.
 
 ```java
+@RestController
+public class ExampleService {
+    @Autowired
+    PipelineDispatcherFactory pipelineDispatcherFactory;
+    
     @GetMapping("/reverse")
-    public DeferredResult<String> stringReverseService(@RequestParam String input){
-        return pipelineDispatcherFactory.<String,String>dispatcherFor("reverse").send(input);
+    public DeferredResult<String> stringReverseService(@RequestParam String input) {
+        return pipelineDispatcherFactory.<String, String>dispatcherFor("reverse").send(input);
     }
+}
 ```
-The *dispatcherFor* method takes a service name.  In the example above, the service name is *reverse*.  
+The *dispatcherFor* method takes the name of the service as an argument. 
 
 The *dispatcherFor* method has two type parameters.  The first is the type of the input and the second is the type 
 of the output.  In this example, the input and output types are both Strings.  These should 
@@ -88,13 +95,14 @@ match with the types expected by and produced by the pipeline that implements th
 ### Configuring the Connection to Hazelcast
 
 The web service is configured using properties from the Spring Environment per the usual Spring Boot
-mechanism. See, for example, https://www.baeldung.com/properties-with-spring for more details. The properties
+mechanism. There are several different ways to provide values for these properties.  See, for example, 
+https://www.baeldung.com/properties-with-spring for more details. The properties
 used by the pipeline dispatcher are given below.
 
-| Property                                            | Description                                                                                                              |
-|-----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| hazelcast.pipeline.dispatcher.embed_hazelcast       | Whether to start a Hazelcast instance embedded in the application server (true) or connect to a remote instance (false). |
-| hazelcast.pipeline.dispatcher.request_timeout_ms    | The number of milliseconds to wait for a response from the pipeline.  A timeout response will be returned if the response does not arrive after this amount of time. |
+| Property                                            | Description                                                                                                                                                                          |
+|-----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| hazelcast.pipeline.dispatcher.embed_hazelcast       | Whether to start a Hazelcast instance embedded in the application server (true) or connect to a remote instance (false). Defaults to false.                                          |
+| hazelcast.pipeline.dispatcher.request_timeout_ms    | The number of milliseconds to wait for a response from the pipeline.  A timeout response will be returned if the response does not arrive after this amount of time. Defaults to 3s. |
 
 Additionally, you need to set the path to a Hazelcast configuration file.  
 
@@ -122,10 +130,9 @@ Hazelcast instance into each web service instance and to have them form a cluste
 > redundant copy then data (e.g. requests in flight) will be lost if more than one instances is taken out of service at 
 > the same time.
 
-To embed a Hazelcast instance, set the *hazelcast.pipeline.dispatcher.embed_hazelcast* property to *true*. 
-The *hazelcast.pipeline.dispatcher.hazelcast_config_file* property must point to an xml or yaml
-hazelcast server configuration file.  In this case, the application can deploy a pipeline using code
-similar to the following.
+To embed a Hazelcast instance, set the *hazelcast.pipeline.dispatcher.embed_hazelcast* property to *true*, and provide
+a hazelcast configuration file using one of the methods discussed above.  In this case, the application can deploy a 
+pipeline using code similar to the following.
 
 ```java
 @RestController
@@ -212,16 +219,17 @@ with each one greater than the previous one.  To select the version, the dispatc
 that is greater than or equal to the random number.  For example, for "capitalize" defined above,  a random number of 
 .8 would cause "v9" to be used while a random number of .95 would cause "v11" to be used.
 
-A utility to dump and load routing policies is provided. Sample dump and load commands are shown below.
+A utility to dump and load routing policies is provided. Sample dump and load commands are shown below.  Of course you 
+would need to change `N.N.N` to a specific version of the dispatcher.
 
 ```bash
 # dump
-java -cp /opt/project/solution/target/spring-hazelcast-pipeline-dispatcher-1.0.3-SNAPSHOT.jar:/opt/project/solution/target/dependency/* \
+java -cp /opt/project/solution/target/spring-hazelcast-pipeline-dispatcher-N.N.N.jar:/opt/project/solution/target/dependency/* \
     hazelcast.platform.solutions.pipeline.dispatcher.RoutingConfigTool dump \ 
     --hz-cluster-name dev --hz-servers hz-pipeline:5701
 
 #load
-java -cp /opt/project/solution/target/spring-hazelcast-pipeline-dispatcher-1.0.3-SNAPSHOT.jar:/opt/project/solution/target/dependency/* \
+java -cp /opt/project/solution/target/spring-hazelcast-pipeline-dispatcher-N.N.N.jar:/opt/project/solution/target/dependency/* \
            hazelcast.platform.solutions.pipeline.dispatcher.RoutingConfigTool load \
            --hz-cluster-name dev --hz-servers hz-pipeline:5701 --input /opt/project/reverse_routing.json 
 ```
@@ -243,11 +251,17 @@ The value is just the request input.
 - When the Pipeline has computed the result, it will put the response into a configurable response map.  The key will be the 
 same as the key for the originating request.
 - The Spring Boot application will use a listener with a predicate, containing its client id, to listen for relevant results.  
-When a result with the matching client id is put into response map, the correct HTTP Server instance will be notified via its listener.
+- When a result with the matching client id is put into response map, the correct HTTP Server instance will be notified via its listener.
 It will then use the unique id to look up the correct `DeferredResult` instance. The result will be sent to the original 
-HTTP/REST client by calling `DeferredResult.setResult` method.
+HTTP/REST client by calling the `DeferredResult.setResult` method.
 
 # Release Notes
 
-## 1.1 
-- Multi-version routing
+## 1.1.1
+Removed the *hazelcast.pipeline.dispatcher.hazelcast_config_file* property and replaced it with the default Hazelcast 
+configuration method as described by these 2 links.
+- https://docs.hazelcast.com/hazelcast/5.2/clients/java#configuring-java-client
+- https://docs.hazelcast.com/hazelcast/5.2/configuration/understanding-configuration#configuration-precedence
+
+## 1.1
+Added dynamic multi-version routing

@@ -14,8 +14,10 @@ services:
   clientserver-app:
     image: amazoncorretto:11
     command: >
-      java 
-        -Dspring.config.location=/opt/project/sample-application/config/clientserver.application.properties
+      java
+        -Dhazelcast.pipeline.dispatcher.embed_hazelcast=false 
+        -Dhazelcast.pipeline.dispatcher.request_timeout_ms=1000  
+        -Dhazelcast.client.config=/opt/project/sample-application/config/hazelcast-client.yaml
         -Dlogging.level.hazelcast.platform.solutions=WARN
         -jar /opt/project/sample-application/target/spring-hazelcast-pipeline-dispatcher-sample-application-1.1.1-SNAPSHOT.jar
     volumes:
@@ -30,7 +32,10 @@ services:
   embedded-app:
     image: amazoncorretto:11
     command: >
-      java -Dspring.config.location=/opt/project/sample-application/config/embedded.application.properties
+      java 
+        -Dhazelcast.pipeline.dispatcher.embed_hazelcast=true 
+        -Dhazelcast.pipeline.dispatcher.request_timeout_ms=1000
+        -Dhazelcast.config=/opt/project/sample-application/config/hazelcast.yaml
         -jar /opt/project/sample-application/target/spring-hazelcast-pipeline-dispatcher-sample-application-1.1.1-SNAPSHOT.jar
     volumes:
       - ".:/opt/project"

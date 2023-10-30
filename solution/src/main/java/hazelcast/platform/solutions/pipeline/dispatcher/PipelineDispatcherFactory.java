@@ -5,10 +5,7 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.map.listener.EntryAddedListener;
 import com.hazelcast.map.listener.EntryRemovedListener;
 import com.hazelcast.map.listener.EntryUpdatedListener;
-import hazelcast.platform.solutions.pipeline.dispatcher.internal.DefaultRequestRouter;
-import hazelcast.platform.solutions.pipeline.dispatcher.internal.MultiVersionRequestRouter;
-import hazelcast.platform.solutions.pipeline.dispatcher.internal.MultiVersionRequestRouterConfig;
-import hazelcast.platform.solutions.pipeline.dispatcher.internal.RequestKeyFactory;
+import hazelcast.platform.solutions.pipeline.dispatcher.internal.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,9 +17,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class PipelineDispatcherFactory implements
-        EntryAddedListener<String, Object>,
-        EntryRemovedListener<String,Object>,
-        EntryUpdatedListener<String,Object> {
+        EntryAddedListener<String, String>,
+        EntryRemovedListener<String,String>,
+        EntryUpdatedListener<String,String> {
 
     private static final Logger log = LoggerFactory.getLogger(PipelineDispatcherFactory.class);
 
@@ -37,12 +34,12 @@ public class PipelineDispatcherFactory implements
 
     public <R,P> PipelineDispatcher<R,P> dispatcherFor(String name){
         PipelineDispatcher<R,P> result = dispatcherMap.computeIfAbsent(name, k -> {
-            Object routerConfig = getRouterConfigFor(k);
+            String routerConfig = getRouterConfigFor(k);
             RequestRouter rr;
             if (routerConfig != null){
                 // currently, the only type of router supported is the MultiVersionRequestRouter, so we assume here
                 // that any entry in the ROUTER_CONFIG_MAP map is a MultiVersionRequestRouterConfig instance
-                rr = new MultiVersionRequestRouter(k, (MultiVersionRequestRouterConfig) routerConfig);
+                rr = new WeightedRouter(k, routerConfig);
             } else {
                 rr = new DefaultRequestRouter(k);
             }
@@ -79,8 +76,8 @@ public class PipelineDispatcherFactory implements
     /**
      * Retrieves the router configuration.  May return null.
      */
-    private Object getRouterConfigFor(String name){
-        return hazelcastInstance.getMap(ROUTER_CONFIG_MAP).get(name);
+    private String getRouterConfigFor(String name){
+        return hazelcastInstance.<String,String>getMap(ROUTER_CONFIG_MAP).get(name);
     }
 
     public HazelcastInstance getEmbeddedHazelcastInstance(){
@@ -96,27 +93,26 @@ public class PipelineDispatcherFactory implements
     }
 
     @Override
-    public void entryAdded(EntryEvent<String, Object> event) {
-        // again we are assuming that the only possible value type is MutliVersionRequestRouterConfig
+    public void entryAdded(EntryEvent<String, String> event) {
         String name = event.getKey();
-        handleAddUpdate(name, (MultiVersionRequestRouterConfig) event.getValue());
+        handleAddUpdate(name, event.getValue());
     }
 
     @Override
-    public void entryUpdated(EntryEvent<String, Object> event) {
-        // again we are assuming that the only possible value type is MutliVersionRequestRouterConfig
+    public void entryUpdated(EntryEvent<String, String> event) {
         String name = event.getKey();
-        handleAddUpdate(name, (MultiVersionRequestRouterConfig) event.getValue());
+        handleAddUpdate(name,  event.getValue());
     }
 
     @Override
-    public void entryRemoved(EntryEvent<String, Object> event) {
+    public void entryRemoved(EntryEvent<String, String> event) {
         String name = event.getKey();
         handleRemove(name);
     }
 
-    private <R,P> void handleAddUpdate(String name, MultiVersionRequestRouterConfig config){
-        RequestRouter rr =  new MultiVersionRequestRouter(name, config);
+    private <R,P> void handleAddUpdate(String name, String config){
+        // currently, only the WeightedRouter is supported
+        RequestRouter rr =  new WeightedRouter(name, config);
         dispatcherMap.put(name,
                 new PipelineDispatcher<R,P>(this.requestKeyFactory, hazelcastInstance, name, rr, requestTimeoutMs));
 

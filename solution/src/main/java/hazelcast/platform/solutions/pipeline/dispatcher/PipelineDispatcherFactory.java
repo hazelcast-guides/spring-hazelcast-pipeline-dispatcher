@@ -48,8 +48,9 @@ public class PipelineDispatcherFactory implements
                     hazelcastInstance,
                     name,
                     rr,
-                    requestTimeoutMs);
+                    3000);
         });
+        //TODO it seems like requestTimeoutMs is not getting populated so for now it is hard-coded
 
 
         return result;

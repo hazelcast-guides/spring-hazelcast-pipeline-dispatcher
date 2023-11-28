@@ -1,13 +1,10 @@
 package hazelcast.platform.solutions.pipeline.dispatcher;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.hazelcast.client.HazelcastClient;
-import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.map.IMap;
-import hazelcast.platform.solutions.pipeline.dispatcher.internal.MultiVersionRequestRouterConfig;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
@@ -15,58 +12,44 @@ import net.sourceforge.argparse4j.inf.Namespace;
 
 import java.io.File;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class RoutingConfigTool {
     /**
-     * usage: RoutingConfigTool [-h] --hz-cluster-name HZ_CLUSTER_NAME
-     *                            --hz-servers HZ_SERVERS [HZ_SERVERS ...]
+     * usage: RoutingConfigTool [-h]
+     *                            [--output OUTPUT]
      *                            [--input INPUT] {dump,load}
-     *
+     * <p>
      * Inspect and maintain routing configuration
-     *
+     * <p>
      * positional arguments:
      *   {dump,load}            specifies the desired action
-     *
+     * <p>
      * named arguments:
      *   -h, --help             show this help message and exit
-     *   --hz-cluster-name HZ_CLUSTER_NAME
-     *                          the  name  of  the  Hazelcast  cluster  where  the
-     *                          configuration resides
-     *   --hz-servers HZ_SERVERS [HZ_SERVERS ...]
-     *                          one or more  Hazelcast  cluster members, specified
-     *                          in host[:port] format
      *   --input INPUT          The JSON file containing the control data to load
-     *
+     *   --output OUTPUT        The JSON file to which control data will be dumped
+     * <p>
      *   Sample File Format
      *   {
      *   "serviceA": {
-     *       "versions" : ["v1","v2"],
-     *       "percentages" : [0.5, 1.0]
+     *      "version1": 9,
+     *      "versionX: 1
      *     },
      *   "serviceB": {
-     *       "versions" : ["v1","v2"],
-     *       "percentages" : [0.9, 1.0]
+     *      "version1": 0,
+     *      "versionX: 1
      *     }
      *   }
      *
-     *   Note that the percentages list must be the same length as the versions list and
-     *   all percentages must be in [0.0,1.0] with each one greater than the previous one.
-     *
-     *   To select the version used, a random number in [0.0, 1.0] is generated.  The percentages are
-     *   evaluated in order and the version is used that corresponds to the first percentage that is
-     *   greater than or equal to the random number.  For example, for "serviceB" defined above,
-     *   a random number of .9 would cause "v1" to be used while a random number of .95 would cause "v2" to be used.
      */
     public static void main(String []args){
         ArgumentParser parser = ArgumentParsers.newFor("RoutingConfigTool").build().defaultHelp(true)
                 .description("Inspect and maintain routing configuration");
 
         parser.addArgument("action").choices("dump", "load").required(true).help("specifies the desired action");
-        parser.addArgument("--hz-cluster-name").required(true).type(String.class).help("the name of the Hazelcast cluster where the configuration resides");
-        parser.addArgument("--hz-servers").required(true).nargs("+").type(String.class).help("one or more Hazelcast cluster members, specified in host[:port] format");
         parser.addArgument("--input").type(String.class).required(false).help("The JSON file containing the control data to load");
+        parser.addArgument("--output").type(String.class).required(false).help("The JSON file to which control data will be dumped");
 
         Namespace arguments = null;
         try {
@@ -77,65 +60,52 @@ public class RoutingConfigTool {
         }
 
         String action = arguments.getString("action");
-        String clusterName = arguments.getString("hz_cluster_name");
-        List<String> servers = arguments.getList("hz_servers");
-        String fileName = arguments.getString("input");
+        String inputFileName = arguments.getString("input");
+        String outputFileName = arguments.getString("output");
 
-        if (action.equals("load") && fileName == null){
-            System.err.println("--input argument must be specified if the action is \"load\".");
+        if (action.equals("load") && inputFileName == null){
+            System.out.println("--input argument must be specified if the action is \"load\".");
             System.exit(1);
         }
 
-        /*
-         * Since the dump command dumps configuration to System.out, all other output will be sent to
-         * System.err so it will be possible to get uncorrupted output by redirection only System.out.
-         * For example: RoutingConfigTool --hz-cluster-name=dev --hz-servers=hz:5701 dump 1> output.json
-         */
-        try {
-            ClientConfig clientConfig = new ClientConfig();
-            clientConfig.setClusterName(clusterName);
-            for(String serverName: servers){
-                clientConfig.getNetworkConfig().addAddress(serverName);
-            }
-            clientConfig.getConnectionStrategyConfig().setAsyncStart(false);
+        if (action.equals("dump") && outputFileName == null){
+            System.out.println("--output argument must be specified if the action is \"dump\".");
+            System.exit(1);
+        }
 
-            HazelcastInstance hz = HazelcastClient.newHazelcastClient(clientConfig);
-            System.err.println("Connected");
+        try {
+            HazelcastInstance hz = HazelcastClient.newHazelcastClient();
+            System.out.println("Connected");
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
+            IMap<String, String> remoteConfigMap = hz.getMap(PipelineDispatcherFactory.ROUTER_CONFIG_MAP);
+
             if (action.equals("load")) {
-                Map<String, MultiVersionRequestRouterConfig> configMap = mapper.readValue(
-                        new File(fileName),
-                        new TypeReference<>() {
-                        }
-                );
+                Map<String, Map<String, String>> configMap = mapper.readValue(new File(inputFileName), Map.class);
 
-                for (MultiVersionRequestRouterConfig config : configMap.values()) config.check();
-
-                IMap<String, MultiVersionRequestRouterConfig> remoteConfigMap =
-                        hz.getMap(PipelineDispatcherFactory.ROUTER_CONFIG_MAP);
-
-                remoteConfigMap.putAll(configMap);
-
-                System.err.println("Loaded " + configMap.size() + " configuration entries");
-            } else {
-                IMap<String, MultiVersionRequestRouterConfig> remoteConfigMap =
-                        hz.getMap(PipelineDispatcherFactory.ROUTER_CONFIG_MAP);
-
-                Map<String, MultiVersionRequestRouterConfig> localMap = new HashMap<>();
-                for (Map.Entry<String, MultiVersionRequestRouterConfig> next : remoteConfigMap) {
-                    localMap.put(next.getKey(), next.getValue());
+                for (Map.Entry<String,Map<String,String>> entry: configMap.entrySet()){
+                    String json = mapper.writeValueAsString(entry.getValue());
+                    remoteConfigMap.put(entry.getKey(), json);
                 }
 
-                mapper.writeValue(System.out, localMap);
+                System.out.println("Loaded " + configMap.size() + " configuration entries from " + inputFileName);
+            } else {
+                Map<String, Map<String, String>> localMap = new HashMap<>();
+                for (Map.Entry<String, String> entry : remoteConfigMap) {
+                    Map<String, String> map = mapper.readValue(entry.getValue(), Map.class);
+                    localMap.put(entry.getKey(), map);
+                }
+
+                mapper.writeValue(new File(outputFileName), localMap);
+                System.out.println("Dumped " + localMap.size() + " configuration entries to " + outputFileName);
             }
 
             hz.shutdown();
         } catch(Exception rx){
-            System.err.println("An error occurred. Program will exit.");
-            rx.printStackTrace(System.err);
+            System.out.println("An error occurred. Program will exit.");
+            rx.printStackTrace(System.out);
             System.exit(1);
         }
     }

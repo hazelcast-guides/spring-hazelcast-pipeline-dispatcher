@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>hazelcast.platform.solutions</groupId>
 		<artifactId>spring-hazelcast-pipeline-dispatcher-parent</artifactId>
-		<version>1.1.2-SNAPSHOT</version>
+		<version>1.2.0</version>
 	</parent>
 
 	<!-- inherit version from the parent -->
@@ -19,7 +19,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.hazelcast</groupId>
-			<artifactId>hazelcast</artifactId>
+			<artifactId>hazelcast-enterprise</artifactId>
 			<version>${hazelcast.version}</version>
 		</dependency>
 		<dependency>
@@ -51,6 +51,11 @@
 			<groupId>net.sourceforge.argparse4j</groupId>
 			<artifactId>argparse4j</artifactId>
 			<version>${argparse4j.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>hazelcast.platform.solutions</groupId>
+			<artifactId>viridian-util</artifactId>
+			<version>0.1.2</version>
 		</dependency>
 	</dependencies>
 

@@ -52,11 +52,6 @@
 			<artifactId>argparse4j</artifactId>
 			<version>${argparse4j.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>hazelcast.platform.solutions</groupId>
-			<artifactId>viridian-util</artifactId>
-			<version>0.1.2</version>
-		</dependency>
 	</dependencies>
 
 	<build>

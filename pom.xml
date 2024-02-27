@@ -18,7 +18,6 @@
 		<slf4j.version>2.0.3</slf4j.version>
 		<jackson.version>2.13.2</jackson.version>
 		<argparse4j.version>0.9.0</argparse4j.version>
-		<viridian.util.version>0.1.2</viridian.util.version>
 	</properties>
 
 	<modules>
